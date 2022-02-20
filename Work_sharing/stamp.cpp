@@ -36,7 +36,7 @@ using namespace std::chrono;
     void* executeFunction(void* arg){
         struct tupleArgs* args= (struct tupleArgs*)arg;
         args->func();
-        pthread_exit(NULL);
+    pthread_exit(NULL);
     }
 
     //function executed by each thread for 1 dimensional for loop
