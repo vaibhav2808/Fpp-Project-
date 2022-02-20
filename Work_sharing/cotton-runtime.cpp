@@ -18,11 +18,13 @@ Queue::Queue(){
     tail = NULL;
     int size = 0;
     CAPACITY = QUEUE_SIZE;
-    pthread_mutex_init(&mutex, NULL);
+    pthread_mutex_init(&mutex_pop, NULL);
+    pthread_mutex_init(&mutex_push, NULL);
 }
 
 Queue::~Queue(){
-    pthread_mutex_destroy(&mutex);
+    pthread_mutex_destroy(&mutex_pop);
+    pthread_mutex_destroy(&mutex_push);
     while(head != NULL){
         Task* temp = head;
         head = head->next;
@@ -32,24 +34,38 @@ Queue::~Queue(){
 }
 
 std::function<void()> Queue::pop(){
-    pthread_mutex_lock(&mutex);
+    pthread_mutex_lock(&mutex_pop);
+
     if(head == NULL){
-        pthread_mutex_unlock(&mutex);
+        pthread_mutex_unlock(&mutex_pop);
         return NULL;
+    }
+    bool isPushLockAquired = false;
+    if(size == 1) {
+        pthread_mutex_lock(&mutex_push);
+        isPushLockAquired = true;
     }
     Task* task = head;
     head = head->next;
     size--;
-    pthread_mutex_unlock(&mutex);
+    if(isPushLockAquired){
+        pthread_mutex_unlock(&mutex_push);
+    }
+    pthread_mutex_unlock(&mutex_pop);
     std::function<void()> toReturn=task->func;
     delete task;
     return toReturn;
 }
 
 void Queue::push(std::function<void()> func){
-    pthread_mutex_lock(&mutex);
+    pthread_mutex_lock(&mutex_push);
     if(size > CAPACITY){
         throw "Error: Task pool is Full";
+    }
+    bool isPopLockAquired = false;
+    if(size == 1) {
+        pthread_mutex_lock(&mutex_pop);
+        isPopLockAquired = true;
     }
     Task* task = new Task;
     task->func = func;
@@ -61,7 +77,10 @@ void Queue::push(std::function<void()> func){
         tail = task;
     }
     size++;
-    pthread_mutex_unlock(&mutex);
+    if(isPopLockAquired){
+        pthread_mutex_unlock(&mutex_pop);
+    }
+    pthread_mutex_unlock(&mutex_push);
 }
 
 int thread_pool_size(){
