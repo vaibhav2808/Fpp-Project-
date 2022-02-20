@@ -40,12 +40,6 @@ Queue::~Queue(){
 }
 
 std::function<void()> Queue::pop(){
-    pthread_mutex_lock(&mutex_pop);
-
-    if(head == NULL){
-        pthread_mutex_unlock(&mutex_pop);
-        return NULL;
-    }
     // Acquiring the mutex_push lock as well in case there is only one element in the queue to prevent the race condition 
     // of simultaeously doing both push and pop operations when there is only one element in the queue.
     bool isPushLockAcquired = false;
@@ -53,6 +47,16 @@ std::function<void()> Queue::pop(){
         pthread_mutex_lock(&mutex_push);
         isPushLockAcquired = true;
     }
+    pthread_mutex_lock(&mutex_pop);
+
+    if(head == NULL){
+        if(isPushLockAcquired){
+            pthread_mutex_unlock(&mutex_push);
+        }
+        pthread_mutex_unlock(&mutex_pop);
+        return NULL;
+    }
+
     Task* task = head;
     head = head->next;
     size--;
@@ -67,6 +71,11 @@ std::function<void()> Queue::pop(){
 }
 
 void Queue::push(std::function<void()> func){
+    // Creating a new Task to push in the task pool
+    Task* task = new Task;
+    task->func = func;
+    task->next = NULL;
+    
     pthread_mutex_lock(&mutex_push);
     if(size > CAPACITY){
         throw "Error: Task pool is Full";
@@ -78,10 +87,6 @@ void Queue::push(std::function<void()> func){
         pthread_mutex_lock(&mutex_pop);
         isPopLockAcquired = true;
     }
-    // Creating a new Task to push in the task pool
-    Task* task = new Task;
-    task->func = func;
-    task->next = NULL;
     if(head == NULL){
         head = tail = task;
     } else{
