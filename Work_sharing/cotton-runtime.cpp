@@ -16,6 +16,8 @@ Queue task_pool;
 Queue::Queue(){
     head = NULL;
     tail = NULL;
+    int size = 0;
+    CAPACITY = QUEUE_SIZE;
     pthread_mutex_init(&mutex, NULL);
 }
 
@@ -37,6 +39,7 @@ std::function<void()> Queue::pop(){
     }
     Task* task = head;
     head = head->next;
+    size--;
     pthread_mutex_unlock(&mutex);
     std::function<void()> toReturn=task->func;
     delete task;
@@ -45,6 +48,9 @@ std::function<void()> Queue::pop(){
 
 void Queue::push(std::function<void()> func){
     pthread_mutex_lock(&mutex);
+    if(size > CAPACITY){
+        throw "Error: Task pool is Full";
+    }
     Task* task = new Task;
     task->func = func;
     task->next = NULL;
@@ -54,6 +60,7 @@ void Queue::push(std::function<void()> func){
         tail->next = task;
         tail = task;
     }
+    size++;
     pthread_mutex_unlock(&mutex);
 }
 
@@ -123,6 +130,12 @@ namespace cotton{
         pthread_mutex_lock(&lock_finish);
         finish_counter++;
         pthread_mutex_unlock(&lock_finish);
-        task_pool.push(lambda);
+        try {
+            task_pool.push(lambda);
+        }
+        catch(const char* msg) {
+            std::cerr<<msg<<std::endl;
+            exit(1);
+        }
     }
 }
