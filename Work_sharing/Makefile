@@ -1,10 +1,11 @@
-all: stamp.o
-	g++ -shared -o libstamp.so stamp.o -lpthread
+all: cotton.o
+	g++ -shared -o libcotton.so cotton.o -lpthread
 
-stamp.o: stamp.cpp
-	g++ -c -fPIC -o stamp.o stamp.cpp
+cotton.o: cotton-runtime.cpp
+	g++ -c -fPIC -o cotton.o cotton-runtime.cpp
 
-clean: stamp.o libstamp.so
-	rm stamp.o libstamp.so
+test: libcotton.so nqueens.cpp
+	g++ -L./ -lcotton -o nqueens nqueens.cpp
 
-
+clean:
+	rm cotton.o libcotton.so nqueens
