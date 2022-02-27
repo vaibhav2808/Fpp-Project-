@@ -19,7 +19,7 @@ class Queue{
         Task* head;
         Task* tail;
         // current size of the queue
-        int size;
+        volatile int size;
         // Maximum size of the queue
         int CAPACITY;
         // Lock for locking the PUSH operations

@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include "cotton-runtime.h"
+#include <sys/time.h>
 
 // Lock for locking the finish_counter
 pthread_mutex_t lock_finish;
@@ -16,7 +17,7 @@ volatile int finish_counter = 0;
 // A pool of threads
 pthread_t *thread_pool;
 // No. of worker threads to be created
-int COTTON_WORKER = 1;
+int COTTON_WORKER =12;
 // Task pool to store all the tasks
 TaskPool *TASK_POOL;
 int *workerIds;
@@ -60,6 +61,7 @@ std::function<void()> Queue::popFromTail(){
     delete task;
     return toReturn;
 }
+
 std::function<void()> Queue::popFromHead(){
     pthread_mutex_lock(&mutex);
     if(head == NULL){
@@ -80,12 +82,15 @@ std::function<void()> Queue::popFromHead(){
     delete task;
     return toReturn;
 }
+
 void Queue::push(std::function<void()> func){
     // Creating a new Task to push in the task pool
+    pthread_mutex_lock(&mutex);
     Task* task = new Task;
     task->func = func;
     task->next = NULL;
     task->prev = tail;
+    
     
     if(size > CAPACITY){
         throw "Error: Task pool is Full";
@@ -97,6 +102,7 @@ void Queue::push(std::function<void()> func){
         tail = task;
     }
     size++;
+    pthread_mutex_unlock(&mutex);
 }
 
 TaskPool::TaskPool(int size){
@@ -111,7 +117,6 @@ TaskPool::TaskPool(int size){
 // }
 
 void TaskPool::pushTask(std::function<void()> func){
-    void* task=pthread_getspecific(key);
     int id = *(int *)pthread_getspecific(key);
     try {
         task_pool[id].push(func);
@@ -123,7 +128,6 @@ void TaskPool::pushTask(std::function<void()> func){
 }
 
 std::function<void()> TaskPool::getTask(){
-    void* task2=pthread_getspecific(key);
     int id = *(int *)pthread_getspecific(key);
     std::function<void()> task = task_pool[id].popFromTail();
     if(task == NULL){
@@ -133,7 +137,7 @@ std::function<void()> TaskPool::getTask(){
 }
 
 std::function<void()> TaskPool::steal(){
-    std::uniform_int_distribution dist{0, thread_pool_size}; // set min and max
+    std::uniform_int_distribution dist{0, thread_pool_size-1}; // set min and max
     int id = dist(gen);
     std::function<void()> task = task_pool[id].popFromHead();
     return task;
@@ -170,6 +174,7 @@ namespace cotton{
         if (nworkers_str) {
             COTTON_WORKER = atoi(nworkers_str);
         }
+
         std::cout<<COTTON_WORKER<<" workers"<<std::endl;
         TASK_POOL = new TaskPool(COTTON_WORKER);
         int size = thread_pool_size();
@@ -201,7 +206,7 @@ namespace cotton{
             pthread_join(thread_pool[i - 1], NULL);
         }
         free(thread_pool);
-        delete[] workerIds;
+        free(workerIds);
     }
 
     void start_finish() {
@@ -229,7 +234,7 @@ namespace cotton{
 // {
 //     cotton::init_runtime();
 //     cotton::start_finish();
-//     for (int i = 0; i < 100; i++){
+//     for (int i = 0; i < 1000000; i++){
 //         cotton::async([](){
 //             std::cout<<"Hello World"<<std::endl;
 //         });
@@ -238,3 +243,6 @@ namespace cotton{
 //     cotton::finalize_runtime();
 //     return 0;
 // }
+
+// Solutions for different board sizes
+

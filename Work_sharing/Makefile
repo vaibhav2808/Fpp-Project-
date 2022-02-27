@@ -5,7 +5,7 @@ cotton.o: cotton-runtime.cpp cotton-runtime.h
 	g++ -c -fPIC -o cotton.o cotton-runtime.cpp
 
 test: libcotton.so nqueens.cpp
-	g++ -O3 -L./ -lcotton -o nqueens nqueens.cpp
+	g++ -g -O3 -L./ -lcotton -o nqueens nqueens.cpp
 
 clean:
 	rm cotton.o libcotton.so nqueens
