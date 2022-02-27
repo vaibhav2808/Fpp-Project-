@@ -8,7 +8,6 @@
 
 // Lock for locking the finish_counter
 pthread_mutex_t lock_finish;
-pthread_key_t key;
 // Flag to shutdown the program
 volatile bool shutdown = false;
 // Variable to store the no. of Async tasks spawned
@@ -25,10 +24,13 @@ Queue::Queue(){
     tail = NULL;
     int size = 0;
     CAPACITY = QUEUE_SIZE;
-    pthread_mutex_init(&mutex, NULL);
+    pthread_mutex_init(&mutex_pop, NULL);
+    pthread_mutex_init(&mutex_push, NULL);
 }
+
 Queue::~Queue(){
-    pthread_mutex_destroy(&mutex);
+    pthread_mutex_destroy(&mutex_pop);
+    pthread_mutex_destroy(&mutex_push);
     while(head != NULL){
         Task* temp = head;
         head = head->next;
@@ -36,61 +38,55 @@ Queue::~Queue(){
     }
     tail=NULL;
 }
-std::function<void()> Queue::popFromTail(){
+
+std::function<void()> Queue::pop(){
     // Acquiring the mutex_push lock as well in case there is only one element in the queue to prevent the race condition 
     // of simultaeously doing both push and pop operations when there is only one element in the queue.
-    pthread_mutex_lock(&mutex);
-    if(tail == NULL){
-        pthread_mutex_unlock(&mutex);
-        return NULL;
+    bool isPushLockAcquired = false;
+    if(size == 1) {
+        pthread_mutex_lock(&mutex_push);
+        isPushLockAcquired = true;
     }
-    Task* task = head;
-    tail = tail->prev;
-    size--;
-    if(tail == NULL){
-        head = NULL;
-    } else{
-        tail->next = NULL;
-    }
-    // Check if mutex_push lock was acquired or not
-    pthread_mutex_unlock(&mutex);
-    std::function<void()> toReturn=task->func;
-    delete task;
-    return toReturn;
-}
-std::function<void()> Queue::popFromHead(){
-    pthread_mutex_lock(&mutex);
+    pthread_mutex_lock(&mutex_pop);
+
     if(head == NULL){
-        pthread_mutex_unlock(&mutex);
+        if(isPushLockAcquired){
+            pthread_mutex_unlock(&mutex_push);
+        }
+        pthread_mutex_unlock(&mutex_pop);
         return NULL;
     }
+
     Task* task = head;
     head = head->next;
     size--;
-    if(head==NULL){
-        tail=NULL;
-    } else{
-        head->prev = NULL;
-    }
     // Check if mutex_push lock was acquired or not
-    pthread_mutex_unlock(&mutex);
+    if(isPushLockAcquired){
+        pthread_mutex_unlock(&mutex_push);
+    }
+    pthread_mutex_unlock(&mutex_pop);
     std::function<void()> toReturn=task->func;
     delete task;
     return toReturn;
 }
+
 void Queue::push(std::function<void()> func){
     // Creating a new Task to push in the task pool
     Task* task = new Task;
     task->func = func;
     task->next = NULL;
-    task->prev = tail;
     
-    pthread_mutex_lock(&mutex);
+    pthread_mutex_lock(&mutex_push);
     if(size > CAPACITY){
         throw "Error: Task pool is Full";
     }
     // Acquiring the mutex_pop lock as well in case there is only one element in the queue to prevent the race condition 
     // of simultaeously doing both push and pop operations when there is only one element in the queue.
+    bool isPopLockAcquired = false;
+    if(size == 1) {
+        pthread_mutex_lock(&mutex_pop);
+        isPopLockAcquired = true;
+    }
     if(head == NULL){
         head = tail = task;
     } else{
@@ -99,7 +95,10 @@ void Queue::push(std::function<void()> func){
     }
     size++;
     // Check if mutex_pop lock was acquired or not
-    pthread_mutex_unlock(&mutex);
+    if(isPopLockAcquired){
+        pthread_mutex_unlock(&mutex_pop);
+    }
+    pthread_mutex_unlock(&mutex_push);
 }
 
 // To return the no. of COTTON_WORKER
@@ -108,7 +107,7 @@ int thread_pool_size(){
 }
 // This will find if there is any task in the task pool and execute it
 void find_and_execute_task(){
-    std::function<void()> task = task_pool.popFromHead();
+    std::function<void()> task = task_pool.pop();
     if(task != NULL){
         task();
         pthread_mutex_lock(&lock_finish);
@@ -118,8 +117,6 @@ void find_and_execute_task(){
 }
 // It is a thread function that is continously querying the task pool to check if there are any tasks present
 void *worker_routine(void *arg){
-    int id=*(int *)arg;
-    pthread_setspecific(key, (void *)id);
     while (!shutdown){
         find_and_execute_task();
     }
@@ -144,9 +141,6 @@ namespace cotton{
         for (int i = 1; i < size; i++){
             pthread_create(&thread_pool[i - 1], NULL, &worker_routine, NULL);
         }
-        int id=0;
-        //key from m
-        pthread_setspecific(key, (void *)id);
     }
 
     void finalize_runtime() {
