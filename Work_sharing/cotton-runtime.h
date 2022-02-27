@@ -10,8 +10,8 @@ enum {QUEUE_SIZE=100000};
 // Queue data structure to hold our tasks.
 class Queue{
     private:
-        int head;
-        int tail;
+        volatile int head;
+        volatile int tail;
         // current size of the queue
         // Maximum size of the queue
         std::function<void()> arr[QUEUE_SIZE];
