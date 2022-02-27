@@ -35,7 +35,7 @@ class Queue{
 
 class TaskPool{
     private:
-        Queue *task_pool;
+        Queue task_pool[100];
         int thread_pool_size;
         std::random_device seed;
         std::mt19937 gen{seed()}; // seed the generator

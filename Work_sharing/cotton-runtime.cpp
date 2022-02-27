@@ -27,6 +27,7 @@ Queue::Queue(){
     int size = 0;
     CAPACITY = QUEUE_SIZE;
     pthread_mutex_init(&mutex, NULL);
+    //std::cout<<"init"<<std::endl;
 }
 Queue::~Queue(){
     pthread_mutex_destroy(&mutex);
@@ -99,15 +100,18 @@ void Queue::push(std::function<void()> func){
 }
 
 TaskPool::TaskPool(int size){
-    task_pool = new Queue[size];
+    // for(int i=0;i<size;i++){
+    //     task_pool.push_back(Queue());
+    // }
     thread_pool_size = size;
 }
 
-TaskPool::~TaskPool(){
-    delete[] task_pool;
-}
+// TaskPool::~TaskPool(){
+//     delete[] task_pool;
+// }
 
 void TaskPool::pushTask(std::function<void()> func){
+    void* task=pthread_getspecific(key);
     int id = *(int *)pthread_getspecific(key);
     try {
         task_pool[id].push(func);
@@ -119,6 +123,7 @@ void TaskPool::pushTask(std::function<void()> func){
 }
 
 std::function<void()> TaskPool::getTask(){
+    void* task2=pthread_getspecific(key);
     int id = *(int *)pthread_getspecific(key);
     std::function<void()> task = task_pool[id].popFromTail();
     if(task == NULL){
@@ -160,6 +165,7 @@ void *worker_routine(void *arg){
 
 namespace cotton{
     void init_runtime() {
+        pthread_key_create(&key, NULL);
         const char *nworkers_str = getenv("COTTON_WORKERS");
         if (nworkers_str) {
             COTTON_WORKER = atoi(nworkers_str);
@@ -217,3 +223,18 @@ namespace cotton{
         
     }
 }
+
+
+// int main(int argc, char const *argv[])
+// {
+//     cotton::init_runtime();
+//     cotton::start_finish();
+//     for (int i = 0; i < 100; i++){
+//         cotton::async([](){
+//             std::cout<<"Hello World"<<std::endl;
+//         });
+//     }
+//     cotton::end_finish();
+//     cotton::finalize_runtime();
+//     return 0;
+// }
