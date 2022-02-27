@@ -5,23 +5,16 @@
 int thread_pool_size();
 void find_and_execute_task();
 void *worker_routine();
-#define QUEUE_SIZE 1000000;
-
-// Task structure to hold a task.
-struct Task{
-    struct Task* next;
-    struct Task* prev;
-    std::function<void()> func;
-};
+// #define QUEUE_SIZE 1000000;
+enum {QUEUE_SIZE=100000};
 // Queue data structure to hold our tasks.
 class Queue{
     private:
-        Task* head;
-        Task* tail;
+        int head;
+        int tail;
         // current size of the queue
-        volatile int size;
         // Maximum size of the queue
-        int CAPACITY;
+        std::function<void()> arr[QUEUE_SIZE];
         // Lock for locking the PUSH operations
         pthread_mutex_t mutex;   
     public:

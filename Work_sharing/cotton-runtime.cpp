@@ -23,98 +23,54 @@ TaskPool *TASK_POOL;
 int *workerIds;
 
 Queue::Queue(){
-    head = NULL;
-    tail = NULL;
-    int size = 0;
-    CAPACITY = QUEUE_SIZE;
+    head = 0;
+    tail = 0;
     pthread_mutex_init(&mutex, NULL);
     //std::cout<<"init"<<std::endl;
 }
 Queue::~Queue(){
     pthread_mutex_destroy(&mutex);
-    while(head != NULL){
-        Task* temp = head;
-        head = head->next;
-        delete temp;
-    }
-    tail=NULL;
 }
 std::function<void()> Queue::popFromTail(){
-    // Acquiring the mutex_push lock as well in case there is only one element in the queue to prevent the race condition 
-    // of simultaeously doing both push and pop operations when there is only one element in the queue.
     pthread_mutex_lock(&mutex);
-    if(tail == NULL){
+    if(head==tail){
         pthread_mutex_unlock(&mutex);
         return NULL;
     }
-    Task* task = tail; // Previously it was task = head;
-    tail = tail->prev;
-    size--;
-    if(tail == NULL){
-        head = NULL;
-    } else{
-        tail->next = NULL;
-    }
     // Check if mutex_push lock was acquired or not
+    std::function<void()> toReturn=arr[(tail-1+QUEUE_SIZE)%QUEUE_SIZE];
+    tail--;
     pthread_mutex_unlock(&mutex);
-    std::function<void()> toReturn=task->func;
-    delete task;
+    
     return toReturn;
 }
 
 std::function<void()> Queue::popFromHead(){
     pthread_mutex_lock(&mutex);
-    if(head == NULL){
+    if(head==tail){
         pthread_mutex_unlock(&mutex);
         return NULL;
     }
-    Task* task = head;
-    head = head->next;
-    size--;
-    if(head==NULL){
-        tail=NULL;
-    } else{
-        head->prev = NULL;
-    }
+    std::function<void()> toReturn=arr[head%QUEUE_SIZE];
+    head++;
     // Check if mutex_push lock was acquired or not
     pthread_mutex_unlock(&mutex);
-    std::function<void()> toReturn=task->func;
-    delete task;
+    
     return toReturn;
 }
 
 void Queue::push(std::function<void()> func){
     // Creating a new Task to push in the task pool
-    pthread_mutex_lock(&mutex);
-    Task* task = new Task;
-    task->func = func;
-    task->next = NULL;
-    task->prev = tail;
-    
-    
-    if(size > CAPACITY){
+    if((tail-head+1)==QUEUE_SIZE){
         throw "Error: Task pool is Full";
     }
-    if(head == NULL){
-        head = tail = task;
-    } else{
-        tail->next = task;
-        tail = task;
-    }
-    size++;
-    pthread_mutex_unlock(&mutex);
+    arr[tail%QUEUE_SIZE]=func;
+    tail++;
 }
 
 TaskPool::TaskPool(int size){
-    // for(int i=0;i<size;i++){
-    //     task_pool.push_back(Queue());
-    // }
     thread_pool_size = size;
 }
-
-// TaskPool::~TaskPool(){
-//     delete[] task_pool;
-// }
 
 void TaskPool::pushTask(std::function<void()> func){
     int id = *(int *)pthread_getspecific(key);
@@ -245,4 +201,3 @@ namespace cotton{
 // }
 
 // Solutions for different board sizes
-
