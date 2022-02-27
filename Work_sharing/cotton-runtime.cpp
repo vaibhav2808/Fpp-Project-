@@ -18,7 +18,8 @@ pthread_t *thread_pool;
 // No. of worker threads to be created
 int COTTON_WORKER = 1;
 // Task pool to store all the tasks
-Queue task_pool;
+TaskPool *TASK_POOL;
+int *workerIds;
 
 Queue::Queue(){
     head = NULL;
@@ -44,7 +45,7 @@ std::function<void()> Queue::popFromTail(){
         pthread_mutex_unlock(&mutex);
         return NULL;
     }
-    Task* task = head;
+    Task* task = tail; // Previously it was task = head;
     tail = tail->prev;
     size--;
     if(tail == NULL){
@@ -85,12 +86,9 @@ void Queue::push(std::function<void()> func){
     task->next = NULL;
     task->prev = tail;
     
-    pthread_mutex_lock(&mutex);
     if(size > CAPACITY){
         throw "Error: Task pool is Full";
     }
-    // Acquiring the mutex_pop lock as well in case there is only one element in the queue to prevent the race condition 
-    // of simultaeously doing both push and pop operations when there is only one element in the queue.
     if(head == NULL){
         head = tail = task;
     } else{
@@ -98,8 +96,42 @@ void Queue::push(std::function<void()> func){
         tail = task;
     }
     size++;
-    // Check if mutex_pop lock was acquired or not
-    pthread_mutex_unlock(&mutex);
+}
+
+TaskPool::TaskPool(int size){
+    task_pool = new Queue[size];
+    thread_pool_size = size;
+}
+
+TaskPool::~TaskPool(){
+    delete[] task_pool;
+}
+
+void TaskPool::pushTask(std::function<void()> func){
+    int id = *(int *)pthread_getspecific(key);
+    try {
+        task_pool[id].push(func);
+    }
+    catch(const char* msg) {
+        std::cerr<<msg<<std::endl;
+        exit(1);
+    }
+}
+
+std::function<void()> TaskPool::getTask(){
+    int id = *(int *)pthread_getspecific(key);
+    std::function<void()> task = task_pool[id].popFromTail();
+    if(task == NULL){
+        task = steal();
+    }
+    return task;
+}
+
+std::function<void()> TaskPool::steal(){
+    std::uniform_int_distribution dist{0, thread_pool_size}; // set min and max
+    int id = dist(gen);
+    std::function<void()> task = task_pool[id].popFromHead();
+    return task;
 }
 
 // To return the no. of COTTON_WORKER
@@ -108,7 +140,7 @@ int thread_pool_size(){
 }
 // This will find if there is any task in the task pool and execute it
 void find_and_execute_task(){
-    std::function<void()> task = task_pool.popFromHead();
+    std::function<void()> task = TASK_POOL->getTask();
     if(task != NULL){
         task();
         pthread_mutex_lock(&lock_finish);
@@ -119,7 +151,7 @@ void find_and_execute_task(){
 // It is a thread function that is continously querying the task pool to check if there are any tasks present
 void *worker_routine(void *arg){
     int id=*(int *)arg;
-    pthread_setspecific(key, (void *)id);
+    pthread_setspecific(key, (void *)&id);
     while (!shutdown){
         find_and_execute_task();
     }
@@ -133,6 +165,7 @@ namespace cotton{
             COTTON_WORKER = atoi(nworkers_str);
         }
         std::cout<<COTTON_WORKER<<" workers"<<std::endl;
+        TASK_POOL = new TaskPool(COTTON_WORKER);
         int size = thread_pool_size();
         thread_pool = (pthread_t *)malloc(size * sizeof(pthread_t));
 
@@ -141,12 +174,16 @@ namespace cotton{
             return;
         }
 
-        for (int i = 1; i < size; i++){
-            pthread_create(&thread_pool[i - 1], NULL, &worker_routine, NULL);
+        workerIds = (int*)malloc(COTTON_WORKER * sizeof(int));
+        for(int i = 0; i < COTTON_WORKER; i++) {
+            workerIds[i] = i;
         }
-        int id=0;
-        //key from m
-        pthread_setspecific(key, (void *)id);
+
+        for (int i = 1; i < size; i++){
+            pthread_create(&thread_pool[i - 1], NULL, &worker_routine, (void *)&workerIds[i]);
+        }
+
+        pthread_setspecific(key, (void *)&workerIds[0]);
     }
 
     void finalize_runtime() {
@@ -158,6 +195,7 @@ namespace cotton{
             pthread_join(thread_pool[i - 1], NULL);
         }
         free(thread_pool);
+        delete[] workerIds;
     }
 
     void start_finish() {
@@ -174,12 +212,8 @@ namespace cotton{
         pthread_mutex_lock(&lock_finish);
         finish_counter++;
         pthread_mutex_unlock(&lock_finish);
-        try {
-            task_pool.push(lambda);
-        }
-        catch(const char* msg) {
-            std::cerr<<msg<<std::endl;
-            exit(1);
-        }
+
+        TASK_POOL->pushTask(lambda);
+        
     }
 }

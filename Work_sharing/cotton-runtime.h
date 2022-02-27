@@ -48,32 +48,3 @@ class TaskPool{
         std::function<void()> steal();
 };
 
-TaskPool::TaskPool(int size){
-    task_pool = new Queue[size];
-    thread_pool_size = size;
-}
-
-TaskPool::~TaskPool(){
-    delete[] task_pool;
-}
-
-void TaskPool::pushTask(std::function<void()> func){
-    int id = *(int *)pthread_getspecific(key);
-    task_pool[id].push(func);
-}
-
-std::function<void()> TaskPool::getTask(){
-    int id = *(int *)pthread_getspecific(key);
-    std::function<void()> task = task_pool[id].popFromTail();
-    if(task == NULL){
-        task = steal();
-    }
-    return task;
-}
-
-std::function<void()> TaskPool::steal(){
-    std::uniform_int_distribution dist{0, thread_pool_size}; // set min and max
-    int id = dist(gen);
-    std::function<void()> task = task_pool[id].popFromHead();
-    return task;
-}
