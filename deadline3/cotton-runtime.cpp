@@ -25,37 +25,44 @@ int *workerIds;
 Queue::Queue(){
     head = 0;
     tail = 0;
+    leftRange = -1;
+    rightRange = -1;
+    work = -1;
     pthread_mutex_init(&mutex, NULL);
 }
 Queue::~Queue(){
     pthread_mutex_destroy(&mutex);
 }
 // For Local Pop
-std::function<void()> Queue::popFromTail(){
+Task Queue::popFromTail(){
     pthread_mutex_lock(&mutex);
     if(head==tail){
         pthread_mutex_unlock(&mutex);
-        return NULL;
+        Task task;
+        task.func = NULL;
+        return task;
     }
     // To return the task
     Task toReturn=arr[(tail-1+QUEUE_SIZE)%QUEUE_SIZE];
     tail--;
     pthread_mutex_unlock(&mutex);
     
-    return toReturn.func;
+    return toReturn;
 }
 // For Remote Pop
-std::function<void()> Queue::popFromHead(){
+Task Queue::popFromHead(){
     pthread_mutex_lock(&mutex);
     if(head==tail){
         pthread_mutex_unlock(&mutex);
-        return NULL;
+        Task task;
+        task.func = NULL;
+        return task;
     }
     Task toReturn=arr[head%QUEUE_SIZE];
     head++;
     pthread_mutex_unlock(&mutex);
     
-    return toReturn.func;
+    return toReturn;
 }
 // Local Push
 void Queue::push(Task func){
@@ -72,30 +79,61 @@ TaskPool::TaskPool(int size){
 }
 
 void TaskPool::pushTask(std::function<void()> func, int work){
-
+    
     int id = *(int *)pthread_getspecific(key);
-    try {
-        task_pool[id].push(Task{func, 0,0, work});
+
+    double p_work = task_pool[id].work;
+    double p_start = task_pool[id].leftRange;
+    double p_end = task_pool[id].rightRange;
+
+    if(p_work == -1) {
+        // task_pool[id].work = work;
+        // task_pool[id].leftRange = 0;
+        // task_pool[id].rightRange = COTTON_WORKER - 1;
+        
+        try {
+            task_pool[1].push(Task{func, 0, (double)COTTON_WORKER - 1, work});
+        }
+        catch(const char* msg) {
+            std::cerr<<msg<<std::endl;
+            exit(1);
+        }
+    }else {
+        double worker_amount = p_end - p_start + 1; 
+        double middle = p_start + (work/p_work)*worker_amount;
+        task_pool[id].leftRange = p_start;
+        task_pool[id].rightRange = middle;
+        task_pool[id].work -= work;
+        try {
+            task_pool[(int)middle].push(Task{func, middle, p_end, work});
+        }
+        catch(const char* msg) {
+            std::cerr<<msg<<std::endl;
+            exit(1);
+        }
     }
-    catch(const char* msg) {
-        std::cerr<<msg<<std::endl;
-        exit(1);
-    }
+
 }
 
 std::function<void()> TaskPool::getTask(){
     int id = *(int *)pthread_getspecific(key);
-    std::function<void()> task = task_pool[id].popFromTail();
-    if(task == NULL){
+    Task task = task_pool[id].popFromTail();
+    
+    if(task.func == NULL){
         task = steal();
     }
-    return task;
+    if(task.func != NULL) {
+        task_pool[id].leftRange = task.leftRange;
+        task_pool[id].rightRange = task.rightRange;
+        task_pool[id].work = task.work;
+    }
+    return task.func;
 }
 // Steal operation
-std::function<void()> TaskPool::steal(){
+Task TaskPool::steal(){
     std::uniform_int_distribution dist{0, thread_pool_size-1}; // set min and max
     int id = dist(gen);
-    std::function<void()> task = task_pool[id].popFromHead();
+    Task task = task_pool[id].popFromHead();
     return task;
 }
 
@@ -104,7 +142,7 @@ int thread_pool_size(){
     return COTTON_WORKER;
 }
 // This will find if there is any task in the task pool and execute it
-void find_and_execute_task(){
+void find_and_execute_task() {
     std::function<void()> task = TASK_POOL->getTask();
     if(task != NULL){
         task();
