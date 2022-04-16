@@ -205,8 +205,8 @@ int main(int argc, char *argv[]) {
   cotton::init_runtime();
   int ret, help;
 
-  nx = 8096;
-  ny = 8096;
+  nx = 16384;
+  ny = 16384;
   nt = 50;
   xu = 0.0;
   xo = 1.570796326794896558;
