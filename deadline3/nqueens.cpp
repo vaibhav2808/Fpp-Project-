@@ -109,10 +109,25 @@ void nqueens_kernel(int* A, int depth, int size) {
       if (!failed) {
         cotton::async([=]() {
                 nqueens_kernel(B, depth+1, size);
-        },a--);
+        },(size-depth));
       }
   }
   free(A);
+}
+
+void parallelDepth(int n){
+  if(n==0){
+    return;
+  }
+    for(int i=0;i<10;i++){
+        cotton::async([=](){
+          int k=0;
+            for(int i=0;i<n/10;i++){
+              k+=i;
+            }
+          parallelDepth(n/100);
+        },n/10);
+    }
 }
 
 void verify_queens(int size) {
@@ -145,7 +160,11 @@ int main(int argc, char* argv[])
   long start = get_usecs();
 
   cotton::start_finish();
-  nqueens_kernel(a, 0, n);  
+//   nqueens_kernel(a, 0, n);  
+    int f=1000000000;
+    cotton::async([=](){
+        parallelDepth(f);
+    },f);
   cotton::end_finish();
 
   // Timing for parallel run
@@ -158,4 +177,3 @@ int main(int argc, char* argv[])
   cotton::finalize_runtime();
   return 0;
 }
-

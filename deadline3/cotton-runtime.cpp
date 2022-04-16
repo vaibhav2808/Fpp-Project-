@@ -17,12 +17,12 @@ volatile int finish_counter = 0;
 // A pool of threads
 pthread_t *thread_pool;
 // No. of worker threads to be created
-int COTTON_WORKER =1;
+int COTTON_WORKER =2;
 // Task pool to store all the tasks
 TaskPool *TASK_POOL;
 int *workerIds;
 
-int arr[100];
+// int arr[100];
 
 Queue::Queue(){
     head = 0;
@@ -90,6 +90,7 @@ void TaskPool::pushTask(std::function<void()> func, int work){
     double p_start = task_pool[id].leftRange;
     double p_end = task_pool[id].rightRange;
 
+    // printf("Hello %d %f %f %f\n", id, p_work, p_start, p_end);
     if(p_work == -1) {
         // task_pool[id].work = work;
         // task_pool[id].leftRange = 0;
@@ -106,14 +107,23 @@ void TaskPool::pushTask(std::function<void()> func, int work){
         if(p_work<0){
             p_work=1;
         }
+
         int worker_amount = (int)(p_end - p_start+1); 
-        double middle = p_start + (int)((work/p_work)*worker_amount)%worker_amount;
-        task_pool[id].leftRange = p_start;
-        task_pool[id].rightRange = middle;
-        task_pool[id].work -= work;
+        double middle = (int)(p_start + (double)(((double)work/(p_work+1))*(double)worker_amount))%COTTON_WORKER;
+        task_pool[id].leftRange = (int)middle%COTTON_WORKER;
+
+        task_pool[id].rightRange = (int)p_end%COTTON_WORKER;
+        // task_pool[id].work -= work;
+        // printf("Inside %d %f %f %f %d\n", id, task_pool[id].work, task_pool[id].leftRange, task_pool[id].rightRange,(int)p_start%COTTON_WORKER);
         try {
-            task_pool[(int)middle].push(Task{func, middle, p_end, work});
-            arr[(int)middle]+=1;
+            // if(p_start==id)
+            if(p_start<0)
+              p_start=0;
+            if(p_start==id)
+                task_pool[(int)p_start%COTTON_WORKER].push(Task{func,(double)((int)p_start%COTTON_WORKER), middle, work});
+            else
+                migrate_pool[(int)p_start].push(Task{func,p_start, middle, work});
+            // arr[(int)p_start]+=1;
         }
         
         catch(const char* msg) {
@@ -128,9 +138,12 @@ std::function<void()> TaskPool::getTask(){
     int id = *(int *)pthread_getspecific(key);
     Task task = task_pool[id].popFromTail();
     
-    // if(task.func == NULL){
-    //     task = steal();
-    // }
+    if(task.func == NULL){
+        task=migrate_pool[id].popFromTail();
+        if(task.func == NULL){
+            task = steal();
+        }
+    }
     if(task.func != NULL) {
         task_pool[id].leftRange = task.leftRange;
         task_pool[id].rightRange = task.rightRange;
@@ -141,9 +154,12 @@ std::function<void()> TaskPool::getTask(){
 }
 // Steal operation
 Task TaskPool::steal(){
-    std::uniform_int_distribution dist{0, thread_pool_size-1}; // set min and max
+    std::uniform_int_distribution dist{0, thread_pool_size}; // set min and max
     int id = dist(gen);
     Task task = task_pool[id].popFromHead();
+    if(task.func == NULL){
+        task = migrate_pool[id].popFromHead();
+    }
     return task;
 }
 
@@ -211,9 +227,9 @@ namespace cotton{
         for (int i = 1; i < size; i++){
             pthread_join(thread_pool[i - 1], NULL);
         }
-        for(int i = 0; i < COTTON_WORKER; i++) {
-            printf("Worker %d: %d\n", i, arr[i]);
-        }
+        // for(int i = 0; i < COTTON_WORKER; i++) {
+        //     printf("Worker %d: %d\n", i, arr[i]);
+        // }
         free(thread_pool);
         free(workerIds);
     }
@@ -237,111 +253,230 @@ namespace cotton{
         
     }
 }
+#include "common.h"
+#include "cotton.h"
 
-// int solutions[16] =
-// {
-// 1,
-// 0,
-// 0,
-// 2,
-// 10, /* 5 */
-// 4,
-// 40,
-// 92,
-// 352,
-// 724, /* 10 */
-// 2680,
-// 14200,
-// 73712,
-// 365596,
-// 2279184, 
-// 14772512
-// };
+/* Define ERROR_SUMMARY if you want to check your numerical results */
+//#define ERROR_SUMMARY
 
-// volatile int *atomic;
+#define ELEMENT_t double
+#define DATA_PRINTF_MODIFIER " %f\n "
+int leafmaxcol = 8;
 
-// /*
-//  * <a> contains array of <n> queen positions.  Returns 0
-//  * if none of the queens conflict, and returns 1 otherwise.
-//  */
-// int ok(int n,  int* A) {
-//   int i, j;
-//   for (i =  0; i < n; i++) {
-//     int p = A[i];
+#define f(x,y)     (sin(x)*sin(y))
+#define randa(x,t) (0.0)
+#define randb(x,t) (exp(-2*(t))*sin(x))
+#define randc(y,t) (0.0)
+#define randd(y,t) (exp(-2*(t))*sin(y))
+#define solu(x,y,t) (exp(-2*(t))*sin(x)*sin(y))
 
-//     for (j =  (i +  1); j < n; j++) {
-//       int q = A[j];
-//       if (q == p || q == p - (j - i) || q == p + (j - i))
-//       return 1;
-//     }
-//   }
-//   return 0;
-// }
+int nx, ny, nt;
+ELEMENT_t xu, xo, yu, yo, tu, to;
+ELEMENT_t dx, dy, dt;
 
-// int a=100000000;
+ELEMENT_t dtdxsq, dtdysq;
+ELEMENT_t t;
 
-// void nqueens_kernel(int* A, int depth, int size) {
-//   if (size == depth) {
-//     // atomic increment using gcc inbuilt atomics
-//     __sync_fetch_and_add(atomic, 1);
-//     return;
-//   }
-//   /* try each possible position for queen <depth> */
-//   for(int i=0; i<size; i++) {
-//       /* allocate a temporary array and copy <a> into it */
-//       int* B = (int*) malloc(sizeof(int)*(depth+1));
-//       memcpy(B, A, sizeof(int)*depth);
-//       B[depth] = i;
-//       int failed = ok((depth +  1), B); 
-//       if (!failed) {
-//         cotton::async([=]() {
-//                 nqueens_kernel(B, depth+1, size);
-//         },a--);
-//       }
-//   }
-//   free(A);
-// }
+/*****************   Initialization of grid partition  NEW VERSION ********************/
 
-// void verify_queens(int size) {
-//   if ( *atomic == solutions[size-1] )
-//     printf("OK\n");
-//    else
-//     printf("Incorrect Answer\n");
-// }
+void initgrid(ELEMENT_t *old, int lb, int ub) {
 
-// long get_usecs (void)
-// {
-//    struct timeval t;
-//    gettimeofday(&t,NULL);
-//    return t.tv_sec*1000000+t.tv_usec;
-// }
+  int a, b, llb, lub;
 
-// int main(int argc, char* argv[])
-// {
-//   cotton::init_runtime();
-//   int n = 12;
-//   int i, j;
-     
-//   if(argc > 1) n = atoi(argv[1]);
-     
-//   double dur = 0;
-//   int* a = (int*) malloc(sizeof(int));
-//   atomic = (int*) malloc(sizeof(int));;
-//   atomic[0]=0;
-//   // Timing for parallel run
-//   long start = get_usecs();
+  llb = (lb == 0) ? 1 : lb;
+  lub = (ub == nx) ? nx - 1 : ub;
 
-//   cotton::start_finish();
-//   nqueens_kernel(a, 0, n);  
-//   cotton::end_finish();
+  for (a=llb, b=0; a < lub; a++){		/* boundary nodes */
+    old[a * ny + b] = randa(xu + a * dx, 0);
+  }
 
-//   // Timing for parallel run
-//   long end = get_usecs();
-//   dur = ((double)(end-start))/1000000;
-//   verify_queens(n);  
-//   free((void*)atomic);
-//   printf("NQueens(%d) Time = %fsec\n",n,dur);
+  for (a=llb, b=ny-1; a < lub; a++){
+    old[a * ny + b] = randb(xu + a * dx, 0);
+  }
 
-//   cotton::finalize_runtime();
-//   return 0;
-// }
+  if (lb == 0) {
+    for (a=0, b=0; b < ny; b++){
+      old[a * ny + b] = randc(yu + b * dy, 0);
+    }
+  }
+  if (ub == nx) {
+    for (a=nx-1, b=0; b < ny; b++){
+      old[a * ny + b] = randd(yu + b * dy, 0);
+    }
+  }
+  for (a=llb; a < lub; a++) { /* inner nodes */
+    for (b=1; b < ny-1; b++) {
+      old[a * ny + b] = f(xu + a * dx, yu + b * dy);
+    }
+  }
+}
+
+void initialize(ELEMENT_t *old, int size){
+    cotton::start_finish();
+        irregular_recursion(0, size, leafmaxcol, [=] (int i) {
+	    int lb=i, ub=lb+1;
+            initgrid(old, lb, ub);
+        });
+    cotton::end_finish();
+}
+
+/***************** Five-Point-Stencil Computation NEW VERSION ********************/
+
+void compstripe(ELEMENT_t *neww, ELEMENT_t *old, int lb, int ub) {
+  int a, b, llb, lub;
+
+  llb = (lb == 0) ? 1 : lb;
+  lub = (ub == nx) ? nx - 1 : ub;
+
+  for (a=llb; a < lub; a++) {
+    for (b=1; b < ny-1; b++) {
+        neww[a * ny + b] =   dtdxsq * (old[(a+1) * ny + b] - 2 * old[a * ny +b] + old[(a-1) * ny + b])
+        + dtdysq * (old[a * ny + (b+1)] - 2 * old[a * ny + b] + old[a * ny + (b-1)])
+        + old[a * ny + b];
+    }
+  }
+
+  for (a=llb, b=ny-1; a < lub; a++)
+    neww[a * ny + b] = randb(xu + a * dx, t);
+
+  for (a=llb, b=0; a < lub; a++)
+    neww[a * ny + b] = randa(xu + a * dx, t);
+
+  if (lb == 0) {
+    for (a=0, b=0; b < ny; b++)
+      neww[a * ny + b] = randc(yu + b * dy, t);
+  }
+  if (ub == nx) {
+    for (a=nx-1, b=0; b < ny; b++)
+      neww[a * ny + b] = randd(yu + b * dy, t);
+  }
+}
+
+/***************** Decomposition of 2D grids in stripes ********************/
+
+void compute(int size, ELEMENT_t *neww, ELEMENT_t *old, int timestep){
+    cotton::start_finish();
+        irregular_recursion(0, size, leafmaxcol, [=] (int i) {
+	    int lb=i, ub=lb+1;
+            if (timestep % 2) //this sqitches back and forth between the two arrays by exchanging neww and old
+                compstripe(neww, old, lb, ub);
+            else
+                compstripe(old, neww, lb, ub);
+        });
+    cotton::end_finish();
+}
+
+int heat(ELEMENT_t *old_v, ELEMENT_t *new_v, int run) {
+  int  c;
+
+#ifdef ERROR_SUMMARY
+  ELEMENT_t tmp, *mat;
+  ELEMENT_t mae = 0.0;
+  ELEMENT_t mre = 0.0;
+  ELEMENT_t me = 0.0;
+  int a, b;
+#endif
+
+  /* Initialization */
+  initialize(old_v, nx);
+
+  /* Jacobi Iteration (divide x-dimension of 2D grid into stripes) */
+  /* Timing. "Start" timers */
+  printf("Heat started...\n");
+ 
+  START_TIMER 
+  for (c = 1; c <= nt; c++) {
+    t = tu + c * dt;
+    compute(nx, new_v, old_v, c);
+  }
+  END_TIMER
+
+  printf("Heat ended...\n");	
+
+#ifdef ERROR_SUMMARY
+  /* Error summary computation: Not parallelized! */
+  mat = (c % 2) ? old_v : new_v;
+  printf("\n Error summary of last time frame comparing with exact solution:");
+  for (a=0; a<nx; a++)
+    for (b=0; b<ny; b++) {
+      tmp = fabs(mat[a * nx + b] - solu(xu + a * dx, yu + b * dy, to));
+      //printf("error: %10e\n", tmp);
+      if (tmp > mae)
+        mae = tmp;
+    }
+
+  printf("\n   Local maximal absolute error  %10e ", mae);
+
+  for (a=0; a<nx; a++)
+    for (b=0; b<ny; b++) {
+      tmp = fabs(mat[a * nx + b] - solu(xu + a * dx, yu + b * dy, to));
+      if (mat[a * nx + b] != 0.0)
+        tmp = tmp / mat[a * nx + b];
+      if (tmp > mre)
+        mre = tmp;
+    }
+
+  printf("\n   Local maximal relative error  %10e %s ", mre * 100, "%");
+
+  me = 0.0;
+  for (a=0; a<nx; a++)
+    for (b=0; b<ny; b++) {
+      me += fabs(mat[a * nx + b] - solu(xu + a * dx, yu + b * dy, to));
+    }
+
+  me = me / (nx * ny);
+  printf("\n   Global Mean absolute error    %10e\n\n", me);
+#endif
+  return 0;
+}
+
+int main(int argc, char *argv[]) {
+  PRINT_HARNESS_HEADER
+  cotton::init_runtime();
+  int ret, help;
+
+  nx = 16384;
+  ny = 16384;
+  nt = 50;
+  xu = 0.0;
+  xo = 1.570796326794896558;
+  yu = 0.0;
+  yo = 1.570796326794896558;
+  tu = 0.0;
+  to = 0.0000001;
+
+  // use the math related function before parallel region;
+  // there is some benigh race in initalization code for the math functions.
+  fprintf(stderr, "Testing exp: %f\n", randb(nx, nt));
+
+  printf("Input nx=%d, ny=%d, nt=%d, leafmaxcol=%d\n",nx,ny,nt,leafmaxcol);
+
+  dx = (xo - xu) / (nx - 1);
+  dy = (yo - yu) / (ny - 1);
+  dt = (to - tu) / nt;	/* nt effective time steps! */
+
+  dtdxsq = dt / (dx * dx);
+  dtdysq = dt / (dy * dy);
+
+   /* Memory Allocation */
+  ELEMENT_t * old_v = new ELEMENT_t[nx * ny];
+  ELEMENT_t * new_v = new ELEMENT_t[nx * ny];
+
+  ret = heat(old_v, new_v, 0);
+
+  printf("\nHeat");
+  printf("\n dx = ");printf(DATA_PRINTF_MODIFIER, dx);
+  printf(" dy = ");printf(DATA_PRINTF_MODIFIER, dy);
+  printf(" dt = ");printf(DATA_PRINTF_MODIFIER, dt);
+  printf(" Stability Value for explicit method must be > 0:"); 
+  printf(DATA_PRINTF_MODIFIER,(0.5 - (dt / (dx * dx) + dt / (dy * dy))));
+  printf("Options: granularity = %d\n", leafmaxcol);
+  printf("         nx          = %d\n", nx);
+  printf("         ny          = %d\n", ny);
+  printf("         nt          = %d\n", nt);
+  delete[] old_v;
+  delete[] new_v;
+  cotton::finalize_runtime();
+  PRINT_HARNESS_FOOTER
+  return 0;
+}
