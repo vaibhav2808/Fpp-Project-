@@ -91,6 +91,8 @@ int ok(int n,  int* A) {
   return 0;
 }
 
+int a=100000000;
+
 void nqueens_kernel(int* A, int depth, int size) {
   if (size == depth) {
     // atomic increment using gcc inbuilt atomics
@@ -113,6 +115,21 @@ void nqueens_kernel(int* A, int depth, int size) {
   free(A);
 }
 
+void parallelDepth(int n){
+  if(n==0){
+    return;
+  }
+    for(int i=0;i<10;i++){
+        cotton::async([=](){
+          int k=0;
+            for(int i=0;i<n/10;i++){
+              k+=i;
+            }
+          parallelDepth(n/100);
+        });
+    }
+}
+
 void verify_queens(int size) {
   if ( *atomic == solutions[size-1] )
     printf("OK\n");
@@ -130,7 +147,7 @@ long get_usecs (void)
 int main(int argc, char* argv[])
 {
   cotton::init_runtime();
-  int n = 11;
+  int n = 12;
   int i, j;
      
   if(argc > 1) n = atoi(argv[1]);
@@ -143,7 +160,11 @@ int main(int argc, char* argv[])
   long start = get_usecs();
 
   cotton::start_finish();
-  nqueens_kernel(a, 0, n);  
+//   nqueens_kernel(a, 0, n);  
+    int f=1000000000;
+    cotton::async([=](){
+        parallelDepth(f);
+    });
   cotton::end_finish();
 
   // Timing for parallel run

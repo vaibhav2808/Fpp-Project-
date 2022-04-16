@@ -131,6 +131,7 @@ namespace cotton{
         }
 
         std::cout<<COTTON_WORKER<<" workers"<<std::endl;
+        COTTON_WORKER-=1;
         TASK_POOL = new TaskPool(COTTON_WORKER);
         int size = thread_pool_size();
         thread_pool = (pthread_t *)malloc(size * sizeof(pthread_t));
