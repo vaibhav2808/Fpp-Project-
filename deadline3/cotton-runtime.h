@@ -48,8 +48,8 @@ class TaskGroup {
 
 class TaskPool{
     private:
-        Queue task_pool[100];
-        Queue migrate_pool[100];
+        Queue task_pool[33];
+        // Queue migrate_pool[33];
         int thread_pool_size;
         std::random_device seed;
         std::mt19937 gen{seed()}; // seed the generator
