@@ -91,6 +91,8 @@ int ok(int n,  int* A) {
   return 0;
 }
 
+int a=100000000;
+
 void nqueens_kernel(int* A, int depth, int size) {
   if (size == depth) {
     // atomic increment using gcc inbuilt atomics
@@ -105,10 +107,9 @@ void nqueens_kernel(int* A, int depth, int size) {
       B[depth] = i;
       int failed = ok((depth +  1), B); 
       if (!failed) {
-        int a=1;
         cotton::async([=]() {
                 nqueens_kernel(B, depth+1, size);
-        },(size/depth)*10000000);
+        },a--);
       }
   }
   free(A);
@@ -131,7 +132,7 @@ long get_usecs (void)
 int main(int argc, char* argv[])
 {
   cotton::init_runtime();
-  int n = 11;
+  int n = 12;
   int i, j;
      
   if(argc > 1) n = atoi(argv[1]);
@@ -157,3 +158,4 @@ int main(int argc, char* argv[])
   cotton::finalize_runtime();
   return 0;
 }
+

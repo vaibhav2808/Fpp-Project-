@@ -6,7 +6,7 @@ int thread_pool_size();
 void find_and_execute_task();
 void *worker_routine();
 // #define QUEUE_SIZE 1000000;
-enum {QUEUE_SIZE=100000};
+enum {QUEUE_SIZE=1000000};
 
 struct Task {
     std::function<void()> func;

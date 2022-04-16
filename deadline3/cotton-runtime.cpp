@@ -22,6 +22,8 @@ int COTTON_WORKER =1;
 TaskPool *TASK_POOL;
 int *workerIds;
 
+int arr[100];
+
 Queue::Queue(){
     head = 0;
     tail = 0;
@@ -66,12 +68,14 @@ Task Queue::popFromHead(){
 }
 // Local Push
 void Queue::push(Task func){
+    pthread_mutex_lock(&mutex);
     if((tail-head+1)==QUEUE_SIZE){
         // Throw error if the Queue is full
         throw "Error: Task pool is Full";
     }
     arr[tail%QUEUE_SIZE]=func;
     tail++;
+    pthread_mutex_unlock(&mutex);
 }
 
 TaskPool::TaskPool(int size){
@@ -92,21 +96,26 @@ void TaskPool::pushTask(std::function<void()> func, int work){
         // task_pool[id].rightRange = COTTON_WORKER - 1;
         
         try {
-            task_pool[1].push(Task{func, 0, (double)COTTON_WORKER - 1, work});
+            task_pool[0].push(Task{func, 0, (double)COTTON_WORKER - 1, work});
         }
         catch(const char* msg) {
             std::cerr<<msg<<std::endl;
             exit(1);
         }
     }else {
-        double worker_amount = p_end - p_start + 1; 
-        double middle = p_start + (work/p_work)*worker_amount;
+        if(p_work<0){
+            p_work=1;
+        }
+        int worker_amount = (int)(p_end - p_start+1); 
+        double middle = p_start + (int)((work/p_work)*worker_amount)%worker_amount;
         task_pool[id].leftRange = p_start;
         task_pool[id].rightRange = middle;
         task_pool[id].work -= work;
         try {
             task_pool[(int)middle].push(Task{func, middle, p_end, work});
+            arr[(int)middle]+=1;
         }
+        
         catch(const char* msg) {
             std::cerr<<msg<<std::endl;
             exit(1);
@@ -119,13 +128,14 @@ std::function<void()> TaskPool::getTask(){
     int id = *(int *)pthread_getspecific(key);
     Task task = task_pool[id].popFromTail();
     
-    if(task.func == NULL){
-        task = steal();
-    }
+    // if(task.func == NULL){
+    //     task = steal();
+    // }
     if(task.func != NULL) {
         task_pool[id].leftRange = task.leftRange;
         task_pool[id].rightRange = task.rightRange;
         task_pool[id].work = task.work;
+        // arr[id]+=1;
     }
     return task.func;
 }
@@ -146,6 +156,7 @@ void find_and_execute_task() {
     std::function<void()> task = TASK_POOL->getTask();
     if(task != NULL){
         task();
+
         pthread_mutex_lock(&lock_finish);
         finish_counter--;
         pthread_mutex_unlock(&lock_finish);
@@ -200,6 +211,9 @@ namespace cotton{
         for (int i = 1; i < size; i++){
             pthread_join(thread_pool[i - 1], NULL);
         }
+        for(int i = 0; i < COTTON_WORKER; i++) {
+            printf("Worker %d: %d\n", i, arr[i]);
+        }
         free(thread_pool);
         free(workerIds);
     }
@@ -224,3 +238,110 @@ namespace cotton{
     }
 }
 
+// int solutions[16] =
+// {
+// 1,
+// 0,
+// 0,
+// 2,
+// 10, /* 5 */
+// 4,
+// 40,
+// 92,
+// 352,
+// 724, /* 10 */
+// 2680,
+// 14200,
+// 73712,
+// 365596,
+// 2279184, 
+// 14772512
+// };
+
+// volatile int *atomic;
+
+// /*
+//  * <a> contains array of <n> queen positions.  Returns 0
+//  * if none of the queens conflict, and returns 1 otherwise.
+//  */
+// int ok(int n,  int* A) {
+//   int i, j;
+//   for (i =  0; i < n; i++) {
+//     int p = A[i];
+
+//     for (j =  (i +  1); j < n; j++) {
+//       int q = A[j];
+//       if (q == p || q == p - (j - i) || q == p + (j - i))
+//       return 1;
+//     }
+//   }
+//   return 0;
+// }
+
+// int a=100000000;
+
+// void nqueens_kernel(int* A, int depth, int size) {
+//   if (size == depth) {
+//     // atomic increment using gcc inbuilt atomics
+//     __sync_fetch_and_add(atomic, 1);
+//     return;
+//   }
+//   /* try each possible position for queen <depth> */
+//   for(int i=0; i<size; i++) {
+//       /* allocate a temporary array and copy <a> into it */
+//       int* B = (int*) malloc(sizeof(int)*(depth+1));
+//       memcpy(B, A, sizeof(int)*depth);
+//       B[depth] = i;
+//       int failed = ok((depth +  1), B); 
+//       if (!failed) {
+//         cotton::async([=]() {
+//                 nqueens_kernel(B, depth+1, size);
+//         },a--);
+//       }
+//   }
+//   free(A);
+// }
+
+// void verify_queens(int size) {
+//   if ( *atomic == solutions[size-1] )
+//     printf("OK\n");
+//    else
+//     printf("Incorrect Answer\n");
+// }
+
+// long get_usecs (void)
+// {
+//    struct timeval t;
+//    gettimeofday(&t,NULL);
+//    return t.tv_sec*1000000+t.tv_usec;
+// }
+
+// int main(int argc, char* argv[])
+// {
+//   cotton::init_runtime();
+//   int n = 12;
+//   int i, j;
+     
+//   if(argc > 1) n = atoi(argv[1]);
+     
+//   double dur = 0;
+//   int* a = (int*) malloc(sizeof(int));
+//   atomic = (int*) malloc(sizeof(int));;
+//   atomic[0]=0;
+//   // Timing for parallel run
+//   long start = get_usecs();
+
+//   cotton::start_finish();
+//   nqueens_kernel(a, 0, n);  
+//   cotton::end_finish();
+
+//   // Timing for parallel run
+//   long end = get_usecs();
+//   dur = ((double)(end-start))/1000000;
+//   verify_queens(n);  
+//   free((void*)atomic);
+//   printf("NQueens(%d) Time = %fsec\n",n,dur);
+
+//   cotton::finalize_runtime();
+//   return 0;
+// }
