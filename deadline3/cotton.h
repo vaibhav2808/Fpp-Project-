@@ -10,4 +10,6 @@ namespace cotton{
     void finalize_runtime();
     // Function to create an asynchronous task by passing a lambda function to it
     void async(std::function<void()> &&lambda,int work);
+
+    int get_num_workers();
 }

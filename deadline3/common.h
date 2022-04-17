@@ -85,25 +85,25 @@ void irregular_recursion(int low, int high, int threshold, T && lambda) {
         __divide2_1D(low, high, threshold, lambda);
 }
 
-// template<typename T>
-// void initialization(int low, int high, T* array1d, bool decimal) {
-//     int numWorkers= hclib::num_workers();
-//     assert(high%numWorkers == 0);
-//     int batchSize = high / numWorkers;
-//     int chunk=0;
-//     cotton::start_finish()
-//     for(int wid=0; wid<numWorkers; wid++) {
-//         int start = wid * batchSize;
-//         int end = start + batchSize;
-//         cotton::async([=]() {
-// 	    unsigned int seed = wid+1;
-//             for(int j=start; j<end; j++) {
-// 	        int num = rand_r(&seed);
-// 	        array1d[j] = decimal? T(num/RAND_MAX) : T(num);
-//             }
-//         });
-//     }
-//    cotton::end_finish();
-// }
+template<typename T>
+void initialization(int low, int high, T* array1d, bool decimal) {
+    int numWorkers=cotton::get_num_workers();
+    assert(high%numWorkers == 0);
+    int batchSize = high / numWorkers;
+    int chunk=0;
+    cotton::start_finish();
+    for(int wid=0; wid<numWorkers; wid++) {
+        int start = wid * batchSize;
+        int end = start + batchSize;
+        cotton::async([=]() {
+	    unsigned int seed = wid+1;
+            for(int j=start; j<end; j++) {
+	        int num = rand_r(&seed);
+	        array1d[j] = decimal? T(num/RAND_MAX) : T(num);
+            }
+        }, batchSize);
+    }
+   cotton::end_finish();
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
