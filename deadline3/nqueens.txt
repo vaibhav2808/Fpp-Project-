@@ -1,0 +1,15 @@
+2 workers
+OK
+NQueens(13) Time = 6.757546sec
+4 workers
+OK
+NQueens(13) Time = 9.329506sec
+8 workers
+OK
+NQueens(13) Time = 11.018348sec
+16 workers
+OK
+NQueens(13) Time = 12.206081sec
+32 workers
+OK
+NQueens(13) Time = 15.966738sec

@@ -1,0 +1,6 @@
+#!/bin/bash
+COTTON_WORKERS=2 ./nqueens 13
+COTTON_WORKERS=4 ./nqueens 13
+COTTON_WORKERS=8 ./nqueens 13
+COTTON_WORKERS=16 ./nqueens 13
+COTTON_WORKERS=32 ./nqueens 13

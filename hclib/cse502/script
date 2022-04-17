@@ -1,0 +1,6 @@
+#!/bin/bash
+HCLIB_WORKERS=2 ./heat
+HCLIB_WORKERS=4 ./heat
+HCLIB_WORKERS=8 ./heat
+HCLIB_WORKERS=16 ./heat
+HCLIB_WORKERS=32 ./heat

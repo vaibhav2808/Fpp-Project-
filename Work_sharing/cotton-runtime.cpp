@@ -92,7 +92,7 @@ std::function<void()> TaskPool::getTask(){
 }
 // Steal operation
 std::function<void()> TaskPool::steal(){
-    std::uniform_int_distribution dist{0, thread_pool_size-1}; // set min and max
+    std::uniform_int_distribution<> dist{0, thread_pool_size-1}; // set min and max
     int id = dist(gen);
     std::function<void()> task = task_pool[id].popFromHead();
     return task;
@@ -134,7 +134,7 @@ namespace cotton{
         }
 
         std::cout<<COTTON_WORKER<<" workers"<<std::endl;
-        COTTON_WORKER-=1;
+        // COTTON_WORKER-=1;
         TASK_POOL = new TaskPool(COTTON_WORKER);
         int size = thread_pool_size();
         thread_pool = (pthread_t *)malloc(size * sizeof(pthread_t));

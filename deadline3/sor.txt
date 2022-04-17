@@ -1,0 +1,80 @@
+
+-----
+mkdir timedrun fake
+
+2 workers
+SOR: size=16384, num_iterations=50
+SOR started..
+Kernel Execution Time = 49.820328sec
+SOR ended..
+Harness Ended...
+============================ Statistics Totals ============================
+time.kernel
+49820.328
+Total time: 50302.856 ms
+------------------------------ End Statistics -----------------------------
+===== TEST PASSED in 0 msec =====
+
+-----
+mkdir timedrun fake
+
+4 workers
+SOR: size=16384, num_iterations=50
+SOR started..
+Kernel Execution Time = 24.121831sec
+SOR ended..
+Harness Ended...
+============================ Statistics Totals ============================
+time.kernel
+24121.831
+Total time: 24607.762 ms
+------------------------------ End Statistics -----------------------------
+===== TEST PASSED in 0 msec =====
+
+-----
+mkdir timedrun fake
+
+8 workers
+SOR: size=16384, num_iterations=50
+SOR started..
+Kernel Execution Time = 12.536840sec
+SOR ended..
+Harness Ended...
+============================ Statistics Totals ============================
+time.kernel
+12536.840
+Total time: 13021.773 ms
+------------------------------ End Statistics -----------------------------
+===== TEST PASSED in 0 msec =====
+
+-----
+mkdir timedrun fake
+
+16 workers
+SOR: size=16384, num_iterations=50
+SOR started..
+Kernel Execution Time = 8.302510sec
+SOR ended..
+Harness Ended...
+============================ Statistics Totals ============================
+time.kernel
+8302.510
+Total time: 8798.700 ms
+------------------------------ End Statistics -----------------------------
+===== TEST PASSED in 0 msec =====
+
+-----
+mkdir timedrun fake
+
+32 workers
+SOR: size=16384, num_iterations=50
+SOR started..
+Kernel Execution Time = 6.650439sec
+SOR ended..
+Harness Ended...
+============================ Statistics Totals ============================
+time.kernel
+6650.439
+Total time: 7173.297 ms
+------------------------------ End Statistics -----------------------------
+===== TEST PASSED in 0 msec =====
