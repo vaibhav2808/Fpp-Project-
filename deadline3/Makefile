@@ -4,8 +4,8 @@ all: cotton.o
 cotton.o: cotton-runtime.cpp cotton-runtime.h
 	g++ -c -fPIC -o cotton.o cotton-runtime.cpp
 
-test: libcotton.so heat.cpp
-	g++ -g -O3 -L./ -lcotton -o heat heat.cpp
+test: libcotton.so sor.cpp
+	g++ -g -O3 -L./ -lcotton -o sor sor.cpp
 
 clean:
-	rm cotton.o libcotton.so heat
+	rm cotton.o libcotton.so sor
