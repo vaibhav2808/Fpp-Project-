@@ -1,15 +1,75 @@
+
+-----
+mkdir timedrun fake
+
 2 workers
+Kernel Execution Time = 8.378632sec
 OK
-NQueens(13) Time = 8.583262sec
+NQueens(13) done
+Harness Ended...
+============================ Statistics Totals ============================
+time.kernel
+8378.632
+Total time: 8516.959 ms
+------------------------------ End Statistics -----------------------------
+===== TEST PASSED in 0 msec =====
+
+-----
+mkdir timedrun fake
+
 4 workers
+Kernel Execution Time = 5.855639sec
 OK
-NQueens(13) Time = 5.942768sec
+NQueens(13) done
+Harness Ended...
+============================ Statistics Totals ============================
+time.kernel
+5855.639
+Total time: 5997.183 ms
+------------------------------ End Statistics -----------------------------
+===== TEST PASSED in 0 msec =====
+
+-----
+mkdir timedrun fake
+
 8 workers
+Kernel Execution Time = 7.949514sec
 OK
-NQueens(13) Time = 7.910852sec
+NQueens(13) done
+Harness Ended...
+============================ Statistics Totals ============================
+time.kernel
+7949.514
+Total time: 8090.000 ms
+------------------------------ End Statistics -----------------------------
+===== TEST PASSED in 0 msec =====
+
+-----
+mkdir timedrun fake
+
 16 workers
+Kernel Execution Time = 8.099869sec
 OK
-NQueens(13) Time = 8.043242sec
+NQueens(13) done
+Harness Ended...
+============================ Statistics Totals ============================
+time.kernel
+8099.869
+Total time: 8237.307 ms
+------------------------------ End Statistics -----------------------------
+===== TEST PASSED in 0 msec =====
+
+-----
+mkdir timedrun fake
+
 32 workers
+Kernel Execution Time = 7.970766sec
 OK
-NQueens(13) Time = 8.095721sec
+NQueens(13) done
+Harness Ended...
+============================ Statistics Totals ============================
+time.kernel
+7970.766
+Total time: 8107.494 ms
+------------------------------ End Statistics -----------------------------
+===== TEST PASSED in 0 msec =====

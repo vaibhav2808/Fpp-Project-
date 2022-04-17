@@ -1,0 +1,130 @@
+
+-----
+mkdir timedrun fake
+
+2 workers
+Input nx=16384, ny=16384, nt=50, leafmaxcol=8
+Heat started...
+Kernel Execution Time = 63.280003sec
+Heat ended...
+
+Heat
+ dx =  0.000096
+  dy =  0.000096
+  dt =  0.000000
+  Stability Value for explicit method must be > 0: 0.064882
+ Options: granularity = 8
+         nx          = 16384
+         ny          = 16384
+         nt          = 50
+Harness Ended...
+============================ Statistics Totals ============================
+time.kernel
+63280.003
+Total time: 69793.999 ms
+------------------------------ End Statistics -----------------------------
+===== TEST PASSED in 0 msec =====
+
+-----
+mkdir timedrun fake
+
+4 workers
+Input nx=16384, ny=16384, nt=50, leafmaxcol=8
+Heat started...
+Kernel Execution Time = 33.870567sec
+Heat ended...
+
+Heat
+ dx =  0.000096
+  dy =  0.000096
+  dt =  0.000000
+  Stability Value for explicit method must be > 0: 0.064882
+ Options: granularity = 8
+         nx          = 16384
+         ny          = 16384
+         nt          = 50
+Harness Ended...
+============================ Statistics Totals ============================
+time.kernel
+33870.567
+Total time: 37303.200 ms
+------------------------------ End Statistics -----------------------------
+===== TEST PASSED in 0 msec =====
+
+-----
+mkdir timedrun fake
+
+8 workers
+Input nx=16384, ny=16384, nt=50, leafmaxcol=8
+Heat started...
+Kernel Execution Time = 17.296179sec
+Heat ended...
+
+Heat
+ dx =  0.000096
+  dy =  0.000096
+  dt =  0.000000
+  Stability Value for explicit method must be > 0: 0.064882
+ Options: granularity = 8
+         nx          = 16384
+         ny          = 16384
+         nt          = 50
+Harness Ended...
+============================ Statistics Totals ============================
+time.kernel
+17296.179
+Total time: 19236.121 ms
+------------------------------ End Statistics -----------------------------
+===== TEST PASSED in 0 msec =====
+
+-----
+mkdir timedrun fake
+
+16 workers
+Input nx=16384, ny=16384, nt=50, leafmaxcol=8
+Heat started...
+Kernel Execution Time = 11.575633sec
+Heat ended...
+
+Heat
+ dx =  0.000096
+  dy =  0.000096
+  dt =  0.000000
+  Stability Value for explicit method must be > 0: 0.064882
+ Options: granularity = 8
+         nx          = 16384
+         ny          = 16384
+         nt          = 50
+Harness Ended...
+============================ Statistics Totals ============================
+time.kernel
+11575.633
+Total time: 12769.526 ms
+------------------------------ End Statistics -----------------------------
+===== TEST PASSED in 0 msec =====
+
+-----
+mkdir timedrun fake
+
+32 workers
+Input nx=16384, ny=16384, nt=50, leafmaxcol=8
+Heat started...
+Kernel Execution Time = 13.950903sec
+Heat ended...
+
+Heat
+ dx =  0.000096
+  dy =  0.000096
+  dt =  0.000000
+  Stability Value for explicit method must be > 0: 0.064882
+ Options: granularity = 8
+         nx          = 16384
+         ny          = 16384
+         nt          = 50
+Harness Ended...
+============================ Statistics Totals ============================
+time.kernel
+13950.903
+Total time: 14763.528 ms
+------------------------------ End Statistics -----------------------------
+===== TEST PASSED in 0 msec =====

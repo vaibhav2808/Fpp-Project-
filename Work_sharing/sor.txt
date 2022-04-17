@@ -3,14 +3,15 @@
 mkdir timedrun fake
 
 2 workers
-Kernel Execution Time = 6.928064sec
-OK
-NQueens(13) done
+SOR: size=16384, num_iterations=50
+SOR started..
+Kernel Execution Time = 47.065721sec
+SOR ended..
 Harness Ended...
 ============================ Statistics Totals ============================
 time.kernel
-6928.064
-Total time: 7373.641 ms
+47065.721
+Total time: 47231.429 ms
 ------------------------------ End Statistics -----------------------------
 ===== TEST PASSED in 0 msec =====
 
@@ -18,14 +19,15 @@ Total time: 7373.641 ms
 mkdir timedrun fake
 
 4 workers
-Kernel Execution Time = 8.273733sec
-OK
-NQueens(13) done
+SOR: size=16384, num_iterations=50
+SOR started..
+Kernel Execution Time = 23.913008sec
+SOR ended..
 Harness Ended...
 ============================ Statistics Totals ============================
 time.kernel
-8273.733
-Total time: 8710.741 ms
+23913.008
+Total time: 24082.264 ms
 ------------------------------ End Statistics -----------------------------
 ===== TEST PASSED in 0 msec =====
 
@@ -33,14 +35,15 @@ Total time: 8710.741 ms
 mkdir timedrun fake
 
 8 workers
-Kernel Execution Time = 9.257618sec
-OK
-NQueens(13) done
+SOR: size=16384, num_iterations=50
+SOR started..
+Kernel Execution Time = 12.247528sec
+SOR ended..
 Harness Ended...
 ============================ Statistics Totals ============================
 time.kernel
-9257.618
-Total time: 9699.021 ms
+12247.528
+Total time: 12420.503 ms
 ------------------------------ End Statistics -----------------------------
 ===== TEST PASSED in 0 msec =====
 
@@ -48,14 +51,15 @@ Total time: 9699.021 ms
 mkdir timedrun fake
 
 16 workers
-Kernel Execution Time = 10.430731sec
-OK
-NQueens(13) done
+SOR: size=16384, num_iterations=50
+SOR started..
+Kernel Execution Time = 7.423533sec
+SOR ended..
 Harness Ended...
 ============================ Statistics Totals ============================
 time.kernel
-10430.731
-Total time: 10871.635 ms
+7423.533
+Total time: 7603.866 ms
 ------------------------------ End Statistics -----------------------------
 ===== TEST PASSED in 0 msec =====
 
@@ -63,13 +67,14 @@ Total time: 10871.635 ms
 mkdir timedrun fake
 
 32 workers
-Kernel Execution Time = 11.491277sec
-OK
-NQueens(13) done
+SOR: size=16384, num_iterations=50
+SOR started..
+Kernel Execution Time = 4.968402sec
+SOR ended..
 Harness Ended...
 ============================ Statistics Totals ============================
 time.kernel
-11491.277
-Total time: 11940.088 ms
+4968.402
+Total time: 5144.515 ms
 ------------------------------ End Statistics -----------------------------
 ===== TEST PASSED in 0 msec =====
