@@ -1,56 +1,21 @@
-/**********************************************************************************************/
-/*  This program is part of the Barcelona OpenMP Tasks Suite                                  */
-/*  Copyright (C) 2009 Barcelona Supercomputing Center - Centro Nacional de Supercomputacion  */
-/*  Copyright (C) 2009 Universitat Politecnica de Catalunya                                   */
-/*                                                                                            */
-/*  This program is free software; you can redistribute it and/or modify                      */
-/*  it under the terms of the GNU General Public License as published by                      */
-/*  the Free Software Foundation; either version 2 of the License, or                         */
-/*  (at your option) any later version.                                                       */
-/*                                                                                            */
-/*  This program is distributed in the hope that it will be useful,                           */
-/*  but WITHOUT ANY WARRANTY; without even the implied warranty of                            */
-/*  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                             */
-/*  GNU General Public License for more details.                                              */
-/*                                                                                            */
-/*  You should have received a copy of the GNU General Public License                         */
-/*  along with this program; if not, write to the Free Software                               */
-/*  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA            */
-/**********************************************************************************************/
-
 /*
- * Original code from the Cilk project (by Keith Randall)
+ * Copyright 2017 Rice University
  *
- * Copyright (c) 2000 Massachusetts Institute of Technology
- * Copyright (c) 2000 Matteo Frigo
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
-/**
- * Nqueens was ported from the BOTS nqueens.c benchmark.  See below for provenance.
- * This program computes all solutions to the n-queens problem where n is specified in argv[1] (default = 11)
- * The program uses the count of the total number of solutions as a correctness check and also prints the execution time
- * for each repetition. 
- * <p>
- * Note the use of single "finish" statement in main() that awaits termination of all async's created by the
- * recursive calls to nqueens_kernel.
- * <p>
- * To study scalability on a multi-core processor, you can execute "COTTON_WORKERS=<N> ./nqueens 11" by 
- * varying the number of worker (=N) threads.
- *
- * @author Jun Shirako, Rice University
- * @author Vivek Sarkar, Rice University
- *
- * Modifed by Vivek Kumar for CSE 502 at IIITD
- *
- */
-
+#include "common.h"
 #include "cotton.h"
-#include <sys/time.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <cstring>
-
-// Solutions for different board sizes
 int solutions[16] =
 {
 1,
@@ -73,10 +38,6 @@ int solutions[16] =
 
 volatile int *atomic;
 
-/*
- * <a> contains array of <n> queen positions.  Returns 0
- * if none of the queens conflict, and returns 1 otherwise.
- */
 int ok(int n,  int* A) {
   int i, j;
   for (i =  0; i < n; i++) {
@@ -91,11 +52,8 @@ int ok(int n,  int* A) {
   return 0;
 }
 
-int a=100000000;
-
 void nqueens_kernel(int* A, int depth, int size) {
   if (size == depth) {
-    // atomic increment using gcc inbuilt atomics
     __sync_fetch_and_add(atomic, 1);
     return;
   }
@@ -107,27 +65,12 @@ void nqueens_kernel(int* A, int depth, int size) {
       B[depth] = i;
       int failed = ok((depth +  1), B); 
       if (!failed) {
-        cotton::async([=]() {
-                nqueens_kernel(B, depth+1, size);
-        },(size-depth)*(size-depth)*size+100);
+	cotton::async([=]() {
+        nqueens_kernel(B, depth+1, size);
+	}, size*(depth-size));
       }
   }
   free(A);
-}
-
-void parallelDepth(int n){
-  if(n==0){
-    return;
-  }
-    for(int i=0;i<10;i++){
-        cotton::async([=](){
-          int k=0;
-            for(int i=0;i<n/10;i++){
-              k+=i;
-            }
-          parallelDepth(n/100);
-        },n/10);
-    }
 }
 
 void verify_queens(int size) {
@@ -137,43 +80,28 @@ void verify_queens(int size) {
     printf("Incorrect Answer\n");
 }
 
-long get_usecs (void)
-{
-   struct timeval t;
-   gettimeofday(&t,NULL);
-   return t.tv_sec*1000000+t.tv_usec;
-}
-
 int main(int argc, char* argv[])
 {
+  PRINT_HARNESS_HEADER
   cotton::init_runtime();
-  int n = 12;
-  int i, j;
-     
-  if(argc > 1) n = atoi(argv[1]);
-     
-  double dur = 0;
-  int* a = (int*) malloc(sizeof(int));
-  atomic = (int*) malloc(sizeof(int));;
-  atomic[0]=0;
-  // Timing for parallel run
-  long start = get_usecs();
-
-  cotton::start_finish();
-  nqueens_kernel(a, 0, n);  
-    // int f=1000000000;
-    // cotton::async([=](){
-    //     parallelDepth(f);
-    // },f);
-  cotton::end_finish();
-
-  // Timing for parallel run
-  long end = get_usecs();
-  dur = ((double)(end-start))/1000000;
-  verify_queens(n);  
-  free((void*)atomic);
-  printf("NQueens(%d) Time = %fsec\n",n,dur);
-
+      int n = 13;
+      int i, j;
+         
+      if(argc > 1) n = atoi(argv[1]);
+         
+      int* a = (int*) malloc(sizeof(int));
+      atomic = (int*) malloc(sizeof(int));;
+      atomic[0]=0;
+      START_TIMER
+      cotton::start_finish();
+          nqueens_kernel(a, 0, n);  
+      cotton::end_finish();
+      
+      END_TIMER
+      verify_queens(n);  
+      free((void*)atomic);
+      printf("NQueens(%d) done\n",n);
   cotton::finalize_runtime();
+  PRINT_HARNESS_FOOTER
   return 0;
 }
