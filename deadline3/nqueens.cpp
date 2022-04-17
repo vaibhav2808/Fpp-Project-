@@ -109,7 +109,7 @@ void nqueens_kernel(int* A, int depth, int size) {
       if (!failed) {
         cotton::async([=]() {
                 nqueens_kernel(B, depth+1, size);
-        },(size-depth)*size);
+        },(size-depth)*(size-depth)*size+100);
       }
   }
   free(A);
