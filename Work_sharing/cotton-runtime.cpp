@@ -123,6 +123,9 @@ void *worker_routine(void *arg){
 }
 
 namespace cotton{
+    int get_num_workers(){
+        return COTTON_WORKER;
+    }
     void init_runtime() {
         pthread_key_create(&key, NULL);
         const char *nworkers_str = getenv("COTTON_WORKERS");

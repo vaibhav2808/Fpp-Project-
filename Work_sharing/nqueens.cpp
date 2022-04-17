@@ -160,11 +160,11 @@ int main(int argc, char* argv[])
   long start = get_usecs();
 
   cotton::start_finish();
-//   nqueens_kernel(a, 0, n);  
-    int f=1000000000;
-    cotton::async([=](){
-        parallelDepth(f);
-    });
+  nqueens_kernel(a, 0, n);  
+    // int f=1000000000;
+    // cotton::async([=](){
+    //     parallelDepth(f);
+    // });
   cotton::end_finish();
 
   // Timing for parallel run
